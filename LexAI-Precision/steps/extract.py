@@ -70,7 +70,17 @@ Return your output as a JSON object with this exact structure:
     "project_completion_cost_cr": <number>,
     "earnest_money_cr": <number>,
     "dtcp_dues_principal_cr": <number>,
-    "payment_to_other_fcs_percentage": <number>
+    "payment_to_other_fcs_percentage": <number>,
+    "fc_payment_percentage": <number or null>,
+    "has_funding_arrangement": "yes" | "no" | "not_mentioned",
+    "ra_covers_shortfall": "yes" | "no" | "not_mentioned",
+    "home_buyer_delivery_guaranteed": "yes" | "no" | "not_mentioned",
+    "implementation_timeline_months": <number or null>,
+    "conditions_precedent_count": <number or null>,
+    "dtcp_license_renewable": "yes" | "no" | "not_guaranteed" | "not_mentioned",
+    "preferential_transactions_invalidation": "yes" | "pending" | "not_mentioned",
+    "total_sources_cr": <number or null>,
+    "total_uses_cr": <number or null>
   }},
   "compliance_notes": [
     "Specific observations about compliance gaps, conditional requirements, or ambiguities found in the document"

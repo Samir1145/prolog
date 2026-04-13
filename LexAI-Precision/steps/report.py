@@ -83,6 +83,65 @@ def write_report(results_json_path: Path, facts_json_path: Path, case_id: str,
     report.append(f"**OVERALL: {overall}** ({pass_count} PASS, {fail_count} FAIL)")
     report.append("")
 
+    # Regulation 38 detailed check
+    reg38_output = results.get('reg38_output', '')
+    if reg38_output.strip():
+        reg38_rows = _parse_compliance_output(reg38_output)
+        if reg38_rows:
+            report.append("## Regulation 38: Detailed Compliance")
+            report.append("")
+            report.append("| Rule | Status | Value | Detail |")
+            report.append("|---|---|---|---|")
+            for row in reg38_rows:
+                report.append(f"| {row['rule']} | **{row['status']}** | `{row['value']}` | {row['detail']} |")
+            report.append("")
+
+    # Conditional compliance analysis
+    cond_output = results.get('conditional_compliance_output', '')
+    if cond_output.strip():
+        report.append("## Conditional Compliance Analysis")
+        report.append("")
+        for line in cond_output.strip().split('\n'):
+            line = line.strip()
+            if line and not line.startswith('='):
+                if line.startswith('PASS') or line.startswith('FAIL') or line.startswith('CONDITIONAL') or line.startswith('NOT ADDRESSED'):
+                    report.append(f"- {line}")
+                elif line.startswith('OVERALL'):
+                    report.append(f"**{line}**")
+                elif line.startswith('- ') or line.startswith('* '):
+                    report.append(f"  {line}")
+                elif line.startswith('Conditions') or line.startswith('Compliance') or line.startswith('Rule-by-rule'):
+                    report.append(f"**{line}**")
+        report.append("")
+
+    # Section 29A(j) connected persons
+    s29j_output = results.get('section29A_connected_output', '')
+    if s29j_output.strip():
+        report.append("## Section 29A(j): Connected Person Analysis")
+        report.append("")
+        # Parse connected person output
+        for line in s29j_output.split('\n'):
+            line = line.strip()
+            if line.startswith('PASS:') or line.startswith('FAIL:') or line.startswith('INFO:') or line.startswith('RESULT:'):
+                report.append(f"- {line}")
+            elif line.startswith('Categorized') or line.startswith('Direct'):
+                report.append(f"- {line}")
+        report.append("")
+
+    # Financial & Timeline validation
+    fin_output = results.get('financial_output', '')
+    if fin_output.strip():
+        report.append("## Financial & Timeline Validation")
+        report.append("")
+        for line in fin_output.strip().split('\n'):
+            line = line.strip()
+            if line and not line.startswith('='):
+                if line.startswith('PASS') or line.startswith('FAIL') or line.startswith('WARN') or line.startswith('INFO'):
+                    report.append(f"- {line}")
+                elif line.startswith('---'):
+                    report.append(f"**{line.replace('---', '').strip()}**")
+        report.append("")
+
     # Deficiency analysis
     failed_rules = [r for r in compliance_rows if r['status'] == 'FAIL']
     if failed_rules:

@@ -40,6 +40,19 @@ def run_prolog(facts_json_path: Path, case_id: str, vault_dir: Path,
             if 'ERROR' in line:
                 s30_output += f"\nERROR: {line}"
 
+    # Run conditional compliance (3-state model)
+    result_cond = subprocess.run(
+        ['swipl', '-s', str(prolog_dir / 'section30_compliance.pl'),
+         '-s', str(prolog_dir / 'conditional_compliance.pl'),
+         '-s', str(facts_pl_path), '-g', f'check_conditional_compliance({plan_id})'],
+        capture_output=True, text=True
+    )
+    cond_output = result_cond.stdout
+    if result_cond.stderr:
+        for line in result_cond.stderr.split('\n'):
+            if 'ERROR' in line:
+                cond_output += f"\nERROR: {line}"
+
     # Run Section 29A eligibility for first RA
     ra_names = [ra['name'].lower().replace(' ', '_').replace('.', '').replace(',', '')
                 for ra in s29.get('resolution_applicants', [])]
@@ -57,10 +70,52 @@ def run_prolog(facts_json_path: Path, case_id: str, vault_dir: Path,
     )
     s29_output = result_s29.stdout
 
+    # Run Regulation 38 detailed check
+    result_reg38 = subprocess.run(
+        ['swipl', '-s', str(prolog_dir / 'reg38_details.pl'),
+         '-s', str(facts_pl_path), '-g', f'check_reg38({plan_id})'],
+        capture_output=True, text=True
+    )
+    reg38_output = result_reg38.stdout
+    if result_reg38.stderr:
+        for line in result_reg38.stderr.split('\n'):
+            if 'ERROR' in line:
+                reg38_output += f"\nERROR: {line}"
+
+    # Run Section 29A(j) connected person analysis
+    if ra_names:
+        s29j_goal = f"check_connected_persons({ra_atom}), halt."
+    else:
+        s29j_goal = "writeln('NO RA FOUND'), halt."
+
+    result_s29j = subprocess.run(
+        ['swipl', '-s', str(prolog_dir / 'section29A_eligibility.pl'),
+         '-s', str(prolog_dir / 'section29A_connected.pl'),
+         '-s', str(facts_pl_path), '-g', s29j_goal],
+        capture_output=True, text=True
+    )
+    s29j_output = result_s29j.stdout
+
+    # Run Financial & Timeline validator
+    result_fin = subprocess.run(
+        ['swipl', '-s', str(prolog_dir / 'financial_validator.pl'),
+         '-s', str(facts_pl_path), '-g', f'check_financial({plan_id})'],
+        capture_output=True, text=True
+    )
+    fin_output = result_fin.stdout
+    if result_fin.stderr:
+        for line in result_fin.stderr.split('\n'):
+            if 'ERROR' in line:
+                fin_output += f"\nERROR: {line}"
+
     # Save results
     results = {
         "section30_output": s30_output,
         "section29A_output": s29_output,
+        "reg38_output": reg38_output,
+        "section29A_connected_output": s29j_output,
+        "conditional_compliance_output": cond_output,
+        "financial_output": fin_output,
         "plan_id": plan_id,
         "ra_atom": ra_atom,
     }
