@@ -5,12 +5,13 @@ Usage:
     python pipeline.py <pdf_path> [options]
 
 Steps:
-    1. parse   — LlamaParse PDF → raw markdown
-    2. clean   — Strip OCR noise (generic + YAML patterns)
-    3. extract — GPT-4o structured fact extraction
-    4. prolog  — Generate Prolog facts + run compliance checks
-    5. graph   — Load facts into Memgraph knowledge graph
-    6. report  — Generate compliance report markdown
+    1. parse    — LlamaParse PDF → raw markdown
+    2. clean    — Strip OCR noise (generic + YAML patterns)
+    3. structure — PageIndex document structuring (section tree)
+    4. extract  — GPT-4o structured fact extraction (section-routed)
+    5. prolog   — Generate Prolog facts + run compliance checks
+    6. graph    — Load facts into Memgraph knowledge graph
+    7. report   — Generate compliance report markdown
 """
 import argparse
 import os
@@ -19,7 +20,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 
-STEPS = ['parse', 'clean', 'extract', 'prolog', 'graph', 'report']
+STEPS = ['parse', 'clean', 'structure', 'extract', 'prolog', 'graph', 'report']
 
 
 def derive_case_id(pdf_path: str) -> str:
@@ -39,6 +40,10 @@ def main():
                         help='YAML file with cleaning patterns (default: cleaning_patterns.yaml)')
     parser.add_argument('--model', default='gpt-4o',
                         help='OpenAI model for extraction (default: gpt-4o)')
+    parser.add_argument('--pageindex-mode', dest='pageindex_mode',
+                        choices=['auto', 'md_tree', 'pdf_tree', 'llm_split', 'skip'],
+                        default='auto',
+                        help='PageIndex structuring mode (default: auto)')
     parser.add_argument('--vault', default='LexAI_Vault',
                         help='Output vault directory (default: LexAI_Vault)')
     parser.add_argument('--prolog-dir', default='prolog',
@@ -78,6 +83,7 @@ def main():
     # Track intermediate file paths
     raw_md = vault_dir / f"{case_id}_raw.md"
     clean_md = vault_dir / f"{case_id}_clean.md"
+    sections_json = vault_dir / f"{case_id}_sections.json"
     facts_json = vault_dir / f"{case_id}_facts.json"
     results_json = vault_dir / f"{case_id}_results.json"
 
@@ -117,12 +123,38 @@ def main():
     else:
         print(f"[CLEAN] Using cached: {clean_md.name}\n")
 
-    # Step 3: Extract
+    # Step 3: Structure (PageIndex)
     if start_idx <= 2:
+        print("[STRUCTURE] Running PageIndex document structuring...")
+        try:
+            from steps.structure import structure_document
+            sections_json = structure_document(
+                clean_md, case_id, vault_dir,
+                pdf_path=pdf_path,
+                model=args.model,
+                pageindex_mode=args.pageindex_mode,
+            )
+        except Exception as e:
+            print(f"[STRUCTURE] WARNING: {e} (falling back to flat extraction)")
+            from steps.structure import _write_skip_sections
+            _write_skip_sections(clean_md, sections_json, case_id)
+        print("[STRUCTURE] Done.\n")
+    elif not sections_json.exists():
+        print(f"[STRUCTURE] Cached file not found: {sections_json}")
+        sys.exit(1)
+    else:
+        print(f"[STRUCTURE] Using cached: {sections_json.name}\n")
+
+    # Step 4: Extract
+    if start_idx <= 3:
         print("[EXTRACT] Running GPT-4o fact extraction...")
         try:
             from steps.extract import extract_facts
-            facts_json = extract_facts(clean_md, case_id, vault_dir, model=args.model)
+            facts_json = extract_facts(
+                clean_md, case_id, vault_dir,
+                model=args.model,
+                sections_path=sections_json,
+            )
         except Exception as e:
             print(f"[EXTRACT] FAILED: {e}")
             sys.exit(1)
@@ -133,8 +165,8 @@ def main():
     else:
         print(f"[EXTRACT] Using cached: {facts_json.name}\n")
 
-    # Step 4: Prolog
-    if start_idx <= 3:
+    # Step 5: Prolog
+    if start_idx <= 4:
         print("[PROLOG] Generating facts and running compliance checks...")
         try:
             from steps.prolog import run_prolog
@@ -149,8 +181,8 @@ def main():
     else:
         print(f"[PROLOG] Using cached: {results_json.name}\n")
 
-    # Step 5: Graph (Memgraph knowledge graph)
-    if start_idx <= 4 and not args.skip_memgraph:
+    # Step 6: Graph (Memgraph knowledge graph)
+    if start_idx <= 5 and not args.skip_memgraph:
         print("[GRAPH] Loading into Memgraph knowledge graph...")
         try:
             from steps.graph import load_into_memgraph
@@ -167,8 +199,8 @@ def main():
     else:
         print("[GRAPH] Using cached (already loaded)\n")
 
-    # Step 6: Report
-    if start_idx <= 5:
+    # Step 7: Report
+    if start_idx <= 6:
         print("[REPORT] Generating compliance report...")
         try:
             from steps.report import write_report
