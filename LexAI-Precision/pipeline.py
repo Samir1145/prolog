@@ -9,15 +9,17 @@ Steps:
     2. clean   — Strip OCR noise (generic + YAML patterns)
     3. extract — GPT-4o structured fact extraction
     4. prolog  — Generate Prolog facts + run compliance checks
-    5. report  — Generate compliance report markdown
+    5. graph   — Load facts into Memgraph knowledge graph
+    6. report  — Generate compliance report markdown
 """
 import argparse
+import os
 import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
 
-STEPS = ['parse', 'clean', 'extract', 'prolog', 'report']
+STEPS = ['parse', 'clean', 'extract', 'prolog', 'graph', 'report']
 
 
 def derive_case_id(pdf_path: str) -> str:
@@ -147,8 +149,26 @@ def main():
     else:
         print(f"[PROLOG] Using cached: {results_json.name}\n")
 
-    # Step 5: Report
-    if start_idx <= 4:
+    # Step 5: Graph (Memgraph knowledge graph)
+    if start_idx <= 4 and not args.skip_memgraph:
+        print("[GRAPH] Loading into Memgraph knowledge graph...")
+        try:
+            from steps.graph import load_into_memgraph
+            neo4j_uri = os.environ.get('NEO4J_URI', 'bolt://localhost:7687')
+            neo4j_user = os.environ.get('NEO4J_USER', '')
+            neo4j_pass = os.environ.get('NEO4J_PASS', '')
+            load_into_memgraph(facts_json, case_id, neo4j_uri, neo4j_user, neo4j_pass,
+                               vault_dir=vault_dir)
+        except Exception as e:
+            print(f"[GRAPH] WARNING: {e} (continuing without graph)")
+        print("[GRAPH] Done.\n")
+    elif args.skip_memgraph:
+        print("[GRAPH] Skipped (--skip-memgraph)\n")
+    else:
+        print("[GRAPH] Using cached (already loaded)\n")
+
+    # Step 6: Report
+    if start_idx <= 5:
         print("[REPORT] Generating compliance report...")
         try:
             from steps.report import write_report

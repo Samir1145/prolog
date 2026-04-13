@@ -176,6 +176,38 @@ def write_report(results_json_path: Path, facts_json_path: Path, case_id: str,
             report.append(f"| {label} | {val} |")
     report.append("")
 
+    # Proof traces
+    proof_output = results.get('proof_trace_output', '')
+    if proof_output.strip():
+        report.append("## Proof Traces")
+        report.append("")
+        report.append("> Each rule is explained with the specific data value that determined the outcome.")
+        report.append("")
+        for line in proof_output.strip().split('\n'):
+            line = line.strip()
+            if line and not line.startswith('=') and not line.startswith('---'):
+                if line.startswith('[PROOF]'):
+                    report.append(f"  {line}")
+                elif line.startswith('OVERALL') or line.startswith('STATUS'):
+                    report.append(f"**{line}**")
+                elif line.startswith('  '):
+                    report.append(f"{line}")
+        report.append("")
+
+    # 29A proof traces
+    proof_29a = results.get('proof_trace_29a_output', '')
+    if proof_29a.strip():
+        report.append("## Section 29A Proof Traces")
+        report.append("")
+        for line in proof_29a.strip().split('\n'):
+            line = line.strip()
+            if line and not line.startswith('=') and not line.startswith('---'):
+                if line.startswith('[PROOF]') or line.startswith('[PASS]') or line.startswith('[FAIL]') or line.startswith('[WARN]') or line.startswith('[INFO]'):
+                    report.append(f"  {line}")
+                elif line.startswith('OVERALL'):
+                    report.append(f"**{line}**")
+        report.append("")
+
     # Compliance notes
     if notes:
         report.append("## Compliance Notes")

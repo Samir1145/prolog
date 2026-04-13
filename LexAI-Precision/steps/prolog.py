@@ -108,6 +108,34 @@ def run_prolog(facts_json_path: Path, case_id: str, vault_dir: Path,
             if 'ERROR' in line:
                 fin_output += f"\nERROR: {line}"
 
+    # Run Proof Trace & Confidence Explainer
+    result_explain = subprocess.run(
+        ['swipl', '-s', str(prolog_dir / 'section30_compliance.pl'),
+         '-s', str(prolog_dir / 'conditional_compliance.pl'),
+         '-s', str(prolog_dir / 'prolog_explainer.pl'),
+         '-s', str(facts_pl_path), '-g', f'explain_compliance({plan_id})'],
+        capture_output=True, text=True
+    )
+    explain_output = result_explain.stdout
+    if result_explain.stderr:
+        for line in result_explain.stderr.split('\n'):
+            if 'ERROR' in line:
+                explain_output += f"\nERROR: {line}"
+
+    # Run Section 29A Proof Trace
+    if ra_names:
+        explain_29a_goal = f"explain_29A({ra_atom}), halt."
+    else:
+        explain_29a_goal = "writeln('NO RA FOUND'), halt."
+    result_explain_29a = subprocess.run(
+        ['swipl', '-s', str(prolog_dir / 'section29A_eligibility.pl'),
+         '-s', str(prolog_dir / 'section29A_connected.pl'),
+         '-s', str(prolog_dir / 'prolog_explainer.pl'),
+         '-s', str(facts_pl_path), '-g', explain_29a_goal],
+        capture_output=True, text=True
+    )
+    explain_29a_output = result_explain_29a.stdout
+
     # Save results
     results = {
         "section30_output": s30_output,
@@ -116,6 +144,8 @@ def run_prolog(facts_json_path: Path, case_id: str, vault_dir: Path,
         "section29A_connected_output": s29j_output,
         "conditional_compliance_output": cond_output,
         "financial_output": fin_output,
+        "proof_trace_output": explain_output,
+        "proof_trace_29a_output": explain_29a_output,
         "plan_id": plan_id,
         "ra_atom": ra_atom,
     }
