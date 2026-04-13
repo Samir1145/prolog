@@ -1,0 +1,48 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment variables
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+
+# LexAI pipeline generated files
+LexAI-Precision/LexAI_Vault/*_raw.md
+LexAI-Precision/LexAI_Vault/*_raw.json
+LexAI-Precision/LexAI_Vault/*_clean.md
+LexAI-Precision/LexAI_Vault/*_facts.json
+LexAI-Precision/LexAI_Vault/*_results.json
+LexAI-Precision/LexAI_Vault/*_report.md
+LexAI-Precision/LexAI_Vault/*_structured_*.json
+LexAI-Precision/LexAI_Vault/*_premium_*
+LexAI-Precision/LexAI_Vault/SRPL_*
+LexAI-Precision/LexAI_Vault/.obsidian/
+
+# Auto-generated Prolog facts (per case)
+LexAI-Precision/prolog/*_facts.pl

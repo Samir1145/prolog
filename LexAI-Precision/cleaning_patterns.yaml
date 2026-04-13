@@ -1,0 +1,61 @@
+# LexAI-Precision Cleaning Patterns
+# Add patterns here for new PDF types — no Python code changes needed.
+# Loaded by steps/clean.py at runtime.
+
+# === Full-line patterns to remove (headers/footers/page noise) ===
+header_footer:
+  # SRPL document patterns (GURGAON address on every page)
+  - pattern: '^\s*GURGAON\d*\s*$'
+  - pattern: '^\s*GURGACN\d*\s*$'
+  - pattern: '^\s*RGURGAON\d*\s*$'
+  - pattern: '^\s*\w?\s*GURGAON\s*\w?\s*$'
+  - pattern: '^\s*GURGAON\s*[₂₀¹₃₄₅₆₇₈₉]*\s*$'
+  - pattern: '^\s*\(?GURGAON\)?\s*\d*\s*$'
+  - pattern: '^\s*INFRA\s*$'
+  - pattern: '^\s*INFRA\s*N\s*$'
+  - pattern: '^\s*VRGACN\s*$'
+  - pattern: '^\s*SRIAN INFRA LLP\s*$'
+  - pattern: '^\s*COVER PAGE\s*$'
+  - pattern: '^\s*alleay\s*\*?\s*$'
+  - pattern: '^\s*\$r\s*$'
+  - pattern: '^\s*C\s*G\s*P\s*-\s*$'
+  - pattern: '^\s*FOF\s+ORIENTAL BANK.*$'
+  - pattern: '^\s*\d{1,2}\s*\(\s*GURGAON\s*\)\s*\d*\s*$'
+  - pattern: '^\s*S\s*GURGAONE\s*$'
+  - pattern: '^\s*CA\s+GURGAON\s+\w?\s*$'
+  - pattern: '^\s*\d+\s+\(\s*GURGAON\s*\)\s*\d*\s*$'
+  - pattern: '^\s+GURGAON\s+\d+\s*$'
+  - pattern: '^\s*\w?\s*INFRA\s*\w?\s*$'
+  # Add more header/footer patterns for new PDFs below:
+  # - pattern: '^\s*MUMBAI\d*\s*$'
+
+# === Inline patterns to remove (within lines) ===
+inline:
+  - pattern: '\bINFRA\b'
+  - pattern: 'VRGACN'
+  - pattern: '\d+\s*\(\s*GURGAON\s*\)\s*'
+  - pattern: '\d+\s*GURGAON\s*\d*'
+  - pattern: 'GURGAON\s*\d*'
+  - pattern: 'RGURGAON\d*'
+  - pattern: 'GURGACN\d*'
+  # Add more inline patterns below:
+
+# === OCR typo corrections ===
+typo_fixes:
+  - from: '\bsever\b'
+    to: 'sewer'
+  - from: '\bIntcrcst\b'
+    to: 'Interest'
+  - from: '\bHomc Buycrs\b'
+    to: 'Home Buyers'
+  - from: '\bnccds\b'
+    to: 'needs'
+  - from: '\bOperatio na\b'
+    to: 'Operational'
+  - from: '\bCorpui dlion\b'
+    to: 'Corporation'
+  - from: '\bUharge\b'
+    to: 'charge'
+  - from: '\bmcd\b'
+    to: 'MCD'
+  # Add more typo fixes below:
